@@ -2,13 +2,15 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: goweb
-  namespace: goweb
   annotations:
     kubernetes.io/ingress.class: "nginx"
 spec:
-  ingressClassName: nginx
+  tls:
+    - hosts:
+      - cncamp.com
+      secretName: cncamp-tls
   rules:
-    - host: mod8.vtimes.site
+    - host: cncamp.com
       http:
         paths:
           - backend:
