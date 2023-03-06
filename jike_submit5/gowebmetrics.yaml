@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: goweb-metrics
+  annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "8033"
+  labels:
+    app: goweb-metrics
+spec:
+  containers:
+    - name: goweb-metrics
+      image: alpasser/goweb_metrics
+
+      # 优雅启动
+      startupProbe:
+        httpGet:
+          scheme: HTTP
+          path: /healthz
+          port: goweb-port
+        failureThreshold: 30
+        periodSeconds: 2
+
+      # 探活
+      livenessProbe:
+        httpGet:
+          scheme: HTTP
+          path: /healthz
+          port: goweb-port
+        failureThreshold: 3
+        periodSeconds: 10
+
+      # 优雅终止
+      lifecycle:
+        preStop:
+          exec:
+            command: [ "/bin/sh", "-c", "kill -SIGTERM `pidof goweb`" ]
+
+      resources:
+        # QoS保证：Guaranteed
+        limits:
+          cpu: 100m
+          memory: 100Mi
+        requests:
+          cpu: 100m
+          memory: 100Mi
+
+      # 配置和代码分离
+      volumeMounts:
+        - name: goweb-config
+          mountPath: /conf
+          readOnly: true
+      args:
+        - -c
+        - /conf/config.json
+      ports:
+        - name: goweb-port
+          containerPort: 8033
+
+
+  volumes:
+    - name: goweb-config
+      configMap:
+        name: goweb-config
+        defaultMode: 400
